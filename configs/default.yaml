@@ -1,0 +1,31 @@
+seed: 7
+# Half of the 512x640 clip size. Both sides are divisible by the stride.
+image_height: 256
+image_width: 320
+stride: 16
+batch_size: 8
+epochs: 8
+lr_head: 0.001
+lr_backbone: 0.0001
+weight_decay: 0.0001
+workers: 0
+score_thresh: 0.01
+nms_iou: 0.4
+max_det: 40
+# Video-level split. Clips never share frames across splits.
+splits:
+  train: ["1", "2", "3", "5", "6"]
+  val: ["4"]
+  test: ["7"]
+temporal:
+  windows: [4, 16]
+  hidden: 128
+  epochs: 25
+  batch_size: 64
+  lr: 0.001
+  weight_decay: 0.0001
+uncertainty:
+  # Filled from the validation sweep. 0.5 is only the fallback before that file exists.
+  threshold: 0.5
+  min_precision: 0.75
+  min_frames: 30

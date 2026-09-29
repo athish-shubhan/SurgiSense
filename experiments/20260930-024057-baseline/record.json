@@ -1,0 +1,128 @@
+{
+  "experiment_id": "20260930-024057-baseline",
+  "created": "2026-09-29T17:43:07.094896+00:00",
+  "hardware": {
+    "python": "3.10.14",
+    "torch": "2.14.0",
+    "mps": false,
+    "cuda": false,
+    "platform": "macOS-26.2-arm64-arm-64bit",
+    "machine": "arm64"
+  },
+  "hypothesis": "A frame-wise stride-16 detector, without augmentation, localizes tools on a held-out clip.",
+  "method": "MobileNetV3-Small stride-16 detector, tag=baseline, augment=False, epochs=8, batch=8",
+  "configuration": {
+    "tag": "baseline",
+    "augment": false,
+    "epochs": 8,
+    "batch_size": 8,
+    "seed": 7
+  },
+  "dataset_version": "surgvu-public-tool-clips",
+  "checkpoint": "checkpoints/detector_baseline_best.pt",
+  "result": {
+    "history": [
+      {
+        "epoch": 1,
+        "train": {
+          "loss": 0.8880666681339866,
+          "obj": 0.2591312319981424,
+          "cls": 0.2665662727857891,
+          "box": 0.3623691613109488
+        },
+        "val_map50": 0.19824549046230242,
+        "val_map50_95": 0.06257565043759042,
+        "seconds": 347.07217983400915
+      },
+      {
+        "epoch": 2,
+        "train": {
+          "loss": 0.5056044207748613,
+          "obj": 0.17633816971590643,
+          "cls": 0.041569244110172515,
+          "box": 0.2876970076560974
+        },
+        "val_map50": 0.22630561532460663,
+        "val_map50_95": 0.05484275967055803,
+        "seconds": 381.79863862498314
+      },
+      {
+        "epoch": 3,
+        "train": {
+          "loss": 0.42330220250706924,
+          "obj": 0.1481288638946257,
+          "cls": 0.015736013096328334,
+          "box": 0.2594373258791472
+        },
+        "val_map50": 0.24331037787058185,
+        "val_map50_95": 0.0637502918896184,
+        "seconds": 359.078648374998
+      },
+      {
+        "epoch": 4,
+        "train": {
+          "loss": 0.3736562276513953,
+          "obj": 0.12852962395078257,
+          "cls": 0.008502553172109305,
+          "box": 0.23662404979530133
+        },
+        "val_map50": 0.22612525083484483,
+        "val_map50_95": 0.07808902538859648,
+        "seconds": 360.72240462500486
+      },
+      {
+        "epoch": 5,
+        "train": {
+          "loss": 0.3399248786976463,
+          "obj": 0.1145429485722592,
+          "cls": 0.005793087810406609,
+          "box": 0.21958884198414652
+        },
+        "val_map50": 0.23107953674271045,
+        "val_map50_95": 0.0739679855838967,
+        "seconds": 534.4590662080154
+      },
+      {
+        "epoch": 6,
+        "train": {
+          "loss": 0.31252741195653616,
+          "obj": 0.10481585628107974,
+          "cls": 0.003574620812861739,
+          "box": 0.20413693478232936
+        },
+        "val_map50": 0.2823123581759488,
+        "val_map50_95": 0.09370055234364029,
+        "seconds": 513.686482249992
+      },
+      {
+        "epoch": 7,
+        "train": {
+          "loss": 0.29167604982852935,
+          "obj": 0.09605414002349502,
+          "cls": 0.0028051805447811555,
+          "box": 0.19281672899660313
+        },
+        "val_map50": 0.28580007555950837,
+        "val_map50_95": 0.09847378388597236,
+        "seconds": 585.7972361660213
+      },
+      {
+        "epoch": 8,
+        "train": {
+          "loss": 0.27961497485637665,
+          "obj": 0.09167445063983139,
+          "cls": 0.0026254255646122864,
+          "box": 0.18531509852723071
+        },
+        "val_map50": 0.2857963072083364,
+        "val_map50_95": 0.09257185250230358,
+        "seconds": 646.3169790419925
+      }
+    ],
+    "best_val_map50": 0.28580007555950837,
+    "seconds": 3729.9226375000144,
+    "augment": false,
+    "device": "cpu"
+  },
+  "interpretation": "Validation mAP is the selection metric. Test numbers are produced by evaluate."
+}

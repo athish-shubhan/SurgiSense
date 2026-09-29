@@ -1,0 +1,50 @@
+{
+  "experiment_id": "20260930-042508-temporal",
+  "created": "2026-09-29T18:25:08.531290+00:00",
+  "hardware": {
+    "python": "3.10.14",
+    "torch": "2.14.0",
+    "mps": true,
+    "cuda": false,
+    "platform": "macOS-26.2-arm64-arm-64bit",
+    "machine": "arm64"
+  },
+  "hypothesis": "A GRU over frozen frame features beats a linear frame classifier on tool presence.",
+  "method": "Frozen MobileNetV3-Small pool, frame linear vs GRU windows [4, 16]",
+  "configuration": {
+    "windows": [
+      4,
+      16
+    ],
+    "hidden": 128,
+    "epochs": 25,
+    "batch_size": 64,
+    "lr": 0.001,
+    "weight_decay": 0.0001
+  },
+  "dataset_version": "surgvu-public-tool-clips",
+  "checkpoint": "checkpoints/temporal_best.pt",
+  "result": {
+    "frame_val_macro_f1": 0.49090830019757903,
+    "windows": {
+      "4": {
+        "val_macro_f1": 0.4217486404591335,
+        "exact_match": 0.40234375,
+        "final_loss": 0.010618550182941059
+      },
+      "16": {
+        "val_macro_f1": 0.4930449555953575,
+        "exact_match": 0.884765625,
+        "final_loss": 0.012512418569531291
+      }
+    },
+    "best_window": 16,
+    "feature_seconds": 96.70036508300109,
+    "frame_losses_tail": [
+      0.07206102851778269,
+      0.06964691380659739,
+      0.06811827998608351
+    ]
+  },
+  "interpretation": "The window with higher validation macro-F1 is temporal_best. Test metrics are in evaluate."
+}

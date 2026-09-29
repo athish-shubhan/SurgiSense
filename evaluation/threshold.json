@@ -1,0 +1,125 @@
+{
+  "threshold": 0.35,
+  "sweep": [
+    {
+      "threshold": 0.1,
+      "frames": 450,
+      "precision": 0.7,
+      "recall": 0.9813084112149533,
+      "f1": 0.8171206225680933
+    },
+    {
+      "threshold": 0.15,
+      "frames": 446,
+      "precision": 0.7040358744394619,
+      "recall": 0.9781931464174455,
+      "f1": 0.8187744458930901
+    },
+    {
+      "threshold": 0.2,
+      "frames": 445,
+      "precision": 0.7056179775280899,
+      "recall": 0.9781931464174455,
+      "f1": 0.8198433420365535
+    },
+    {
+      "threshold": 0.25,
+      "frames": 436,
+      "precision": 0.7110091743119266,
+      "recall": 0.9657320872274143,
+      "f1": 0.8190224570673712
+    },
+    {
+      "threshold": 0.3,
+      "frames": 407,
+      "precision": 0.7395577395577395,
+      "recall": 0.9376947040498442,
+      "f1": 0.8269230769230769
+    },
+    {
+      "threshold": 0.35,
+      "frames": 345,
+      "precision": 0.7942028985507247,
+      "recall": 0.8535825545171339,
+      "f1": 0.8228228228228228
+    },
+    {
+      "threshold": 0.4,
+      "frames": 276,
+      "precision": 0.8260869565217391,
+      "recall": 0.7102803738317757,
+      "f1": 0.7638190954773869
+    },
+    {
+      "threshold": 0.45,
+      "frames": 209,
+      "precision": 0.8373205741626795,
+      "recall": 0.5451713395638629,
+      "f1": 0.660377358490566
+    },
+    {
+      "threshold": 0.5,
+      "frames": 138,
+      "precision": 0.8405797101449275,
+      "recall": 0.3613707165109034,
+      "f1": 0.5054466230936818
+    },
+    {
+      "threshold": 0.55,
+      "frames": 99,
+      "precision": 0.9090909090909091,
+      "recall": 0.2803738317757009,
+      "f1": 0.42857142857142855
+    },
+    {
+      "threshold": 0.6,
+      "frames": 55,
+      "precision": 0.9272727272727272,
+      "recall": 0.1588785046728972,
+      "f1": 0.2712765957446809
+    },
+    {
+      "threshold": 0.65,
+      "frames": 28,
+      "precision": 1.0,
+      "recall": 0.08722741433021806,
+      "f1": 0.16045845272206302
+    },
+    {
+      "threshold": 0.7,
+      "frames": 16,
+      "precision": 1.0,
+      "recall": 0.04984423676012461,
+      "f1": 0.09495548961424333
+    },
+    {
+      "threshold": 0.75,
+      "frames": 2,
+      "precision": 1.0,
+      "recall": 0.006230529595015576,
+      "f1": 0.012383900928792569
+    },
+    {
+      "threshold": 0.8,
+      "frames": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    {
+      "threshold": 0.85,
+      "frames": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    {
+      "threshold": 0.9,
+      "frames": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    }
+  ],
+  "rule": "min(top detection score, temporal probability of that class)"
+}

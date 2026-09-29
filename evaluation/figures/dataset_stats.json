@@ -1,0 +1,113 @@
+{
+  "frames": 5178,
+  "boxes": 11323,
+  "class_counts": {
+    "needle driver": 3584,
+    "cadiere forceps": 1871,
+    "monopolar curved scissor": 2833,
+    "bipolar forceps": 1798,
+    "grasping retractor": 185,
+    "force bipolar": 781,
+    "clip applier": 258,
+    "vessel sealer": 13
+  },
+  "split_frames": {
+    "train": 3795,
+    "val": 512,
+    "test": 871
+  },
+  "videos": [
+    {
+      "video": "1",
+      "split": "train",
+      "fps": 1.0,
+      "container_frames": 1116,
+      "decoded_frames": 1116,
+      "annotated_frames": 1058,
+      "saved_frames": 1058,
+      "missing_annotated_frames": [],
+      "width": 640,
+      "height": 512,
+      "duration_s": 1116.0
+    },
+    {
+      "video": "2",
+      "split": "train",
+      "fps": 1.0,
+      "container_frames": 378,
+      "decoded_frames": 378,
+      "annotated_frames": 378,
+      "saved_frames": 378,
+      "missing_annotated_frames": [],
+      "width": 640,
+      "height": 512,
+      "duration_s": 378.0
+    },
+    {
+      "video": "3",
+      "split": "train",
+      "fps": 1.0,
+      "container_frames": 297,
+      "decoded_frames": 297,
+      "annotated_frames": 297,
+      "saved_frames": 297,
+      "missing_annotated_frames": [],
+      "width": 640,
+      "height": 512,
+      "duration_s": 297.0
+    },
+    {
+      "video": "4",
+      "split": "val",
+      "fps": 1.0,
+      "container_frames": 512,
+      "decoded_frames": 512,
+      "annotated_frames": 512,
+      "saved_frames": 512,
+      "missing_annotated_frames": [],
+      "width": 640,
+      "height": 512,
+      "duration_s": 512.0
+    },
+    {
+      "video": "5",
+      "split": "train",
+      "fps": 1.0,
+      "container_frames": 960,
+      "decoded_frames": 960,
+      "annotated_frames": 960,
+      "saved_frames": 960,
+      "missing_annotated_frames": [],
+      "width": 640,
+      "height": 512,
+      "duration_s": 960.0
+    },
+    {
+      "video": "6",
+      "split": "train",
+      "fps": 1.0,
+      "container_frames": 1106,
+      "decoded_frames": 1106,
+      "annotated_frames": 1102,
+      "saved_frames": 1102,
+      "missing_annotated_frames": [],
+      "width": 640,
+      "height": 512,
+      "duration_s": 1106.0
+    },
+    {
+      "video": "7",
+      "split": "test",
+      "fps": 1.0,
+      "container_frames": 871,
+      "decoded_frames": 871,
+      "annotated_frames": 871,
+      "saved_frames": 871,
+      "missing_annotated_frames": [],
+      "width": 640,
+      "height": 512,
+      "duration_s": 871.0
+    }
+  ],
+  "corrupt_frames": 0
+}

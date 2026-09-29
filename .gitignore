@@ -1,0 +1,18 @@
+.venv/
+.rosenv/
+.mpl/
+.pytest_cache/
+__pycache__/
+*.pyc
+.DS_Store
+*.log
+*.egg-info/
+
+# SurgVU clips and anything decoded from them. Download locally; do not commit.
+data/raw/
+data/processed/
+evaluation/failure_cases/
+evaluation/inference/frames/
+evaluation/inference/overlay.mp4
+evaluation/ros_smoke/
+evaluation/predictions/

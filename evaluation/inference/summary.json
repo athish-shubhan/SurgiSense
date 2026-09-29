@@ -1,0 +1,26 @@
+{
+  "video": "data/raw/cat1/7_fps1.mp4",
+  "frames": 871,
+  "timed_frames": 863,
+  "warmup_excluded": 8,
+  "checkpoint": "checkpoints/detector_aug_best.pt",
+  "temporal": "checkpoints/temporal_best.pt",
+  "threshold": 0.35,
+  "device": "mps",
+  "resolution": [
+    512,
+    640
+  ],
+  "batch_size": 1,
+  "preprocess_ms": 2.8314217622567246,
+  "detector_ms": 9.722551880625582,
+  "temporal_ms": 22.324750646723537,
+  "model_ms": 32.04730252734912,
+  "post_ms": 32.21237471345127,
+  "total_ms": 67.09109900305711,
+  "fps": 14.905106860068479,
+  "max_rss_mb": 477.40625,
+  "mps_allocated_mb": 6.736572265625,
+  "hold_frames": 454,
+  "track_frames": 417
+}

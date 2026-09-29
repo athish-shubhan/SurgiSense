@@ -1,0 +1,128 @@
+{
+  "experiment_id": "20260930-034326-aug",
+  "created": "2026-09-29T18:22:19.371906+00:00",
+  "hardware": {
+    "python": "3.10.14",
+    "torch": "2.14.0",
+    "mps": true,
+    "cuda": false,
+    "platform": "macOS-26.2-arm64-arm-64bit",
+    "machine": "arm64"
+  },
+  "hypothesis": "Horizontal flip and photometric jitter improve validation mAP@0.5.",
+  "method": "MobileNetV3-Small stride-16 detector, tag=aug, augment=True, epochs=8, batch=8",
+  "configuration": {
+    "tag": "aug",
+    "augment": true,
+    "epochs": 8,
+    "batch_size": 8,
+    "seed": 7
+  },
+  "dataset_version": "surgvu-public-tool-clips",
+  "checkpoint": "checkpoints/detector_aug_best.pt",
+  "result": {
+    "history": [
+      {
+        "epoch": 1,
+        "train": {
+          "loss": 1.088483126288966,
+          "obj": 0.2993176611159977,
+          "cls": 0.39445888204402046,
+          "box": 0.39470658242702483
+        },
+        "val_map50": 0.2416982673699887,
+        "val_map50_95": 0.07423775208551871,
+        "seconds": 444.97813066697563
+      },
+      {
+        "epoch": 2,
+        "train": {
+          "loss": 0.6410322041887986,
+          "obj": 0.2199381108660447,
+          "cls": 0.09873444746101373,
+          "box": 0.32235964602545686
+        },
+        "val_map50": 0.20472037265590143,
+        "val_map50_95": 0.04355813510012461,
+        "seconds": 375.1867329579836
+      },
+      {
+        "epoch": 3,
+        "train": {
+          "loss": 0.5439842171418039,
+          "obj": 0.19053846610219854,
+          "cls": 0.055200408462459515,
+          "box": 0.2982453419660267
+        },
+        "val_map50": 0.2832062578841795,
+        "val_map50_95": 0.09619942932789396,
+        "seconds": 277.11662204100867
+      },
+      {
+        "epoch": 4,
+        "train": {
+          "loss": 0.4806522001404511,
+          "obj": 0.1697296236769149,
+          "cls": 0.032242009819999924,
+          "box": 0.27868056626696336
+        },
+        "val_map50": 0.3154247877647479,
+        "val_map50_95": 0.11366872238548971,
+        "seconds": 263.49381449999055
+      },
+      {
+        "epoch": 5,
+        "train": {
+          "loss": 0.44599266836517737,
+          "obj": 0.15775603343781672,
+          "cls": 0.02423976550761022,
+          "box": 0.26399686819628665
+        },
+        "val_map50": 0.30511479952944875,
+        "val_map50_95": 0.11219146697001381,
+        "seconds": 249.32182949999697
+      },
+      {
+        "epoch": 6,
+        "train": {
+          "loss": 0.41624212904980307,
+          "obj": 0.14958967858239225,
+          "cls": 0.016554943292315952,
+          "box": 0.25009750770895106
+        },
+        "val_map50": 0.320620451690543,
+        "val_map50_95": 0.11372130848335224,
+        "seconds": 247.05553450001753
+      },
+      {
+        "epoch": 7,
+        "train": {
+          "loss": 0.39505065246632226,
+          "obj": 0.14204249239281605,
+          "cls": 0.012694170081522316,
+          "box": 0.24031398977103985
+        },
+        "val_map50": 0.30137482240191904,
+        "val_map50_95": 0.10769144859001041,
+        "seconds": 243.22882187497453
+      },
+      {
+        "epoch": 8,
+        "train": {
+          "loss": 0.38295195190530074,
+          "obj": 0.13779378730215525,
+          "cls": 0.010700757211429606,
+          "box": 0.23445740728001846
+        },
+        "val_map50": 0.3093455013225925,
+        "val_map50_95": 0.10869680969497719,
+        "seconds": 229.8059023329988
+      }
+    ],
+    "best_val_map50": 0.320620451690543,
+    "seconds": 2332.64406333401,
+    "augment": true,
+    "device": "mps"
+  },
+  "interpretation": "Validation mAP is the selection metric. Test numbers are produced by evaluate."
+}
