@@ -45,3 +45,15 @@ class TemporalPresence(nn.Module):
     def forward(self, seq: torch.Tensor) -> torch.Tensor:
         out, _ = self.gru(seq)
         return self.fc(out[:, -1])
+
+
+def left_padded_window(history: torch.Tensor, window: int) -> torch.Tensor:
+    """The last `window` rows of `history` (T, D), left-padded with its first row when T < window.
+
+    Training (`make_windows`), evaluation (`presence_probs`) and live inference all build GRU
+    inputs through this, so the three cannot drift apart.
+    """
+    seq = history[-window:]
+    if len(seq) < window:
+        seq = torch.cat([seq[:1].repeat(window - len(seq), 1), seq], 0)
+    return seq

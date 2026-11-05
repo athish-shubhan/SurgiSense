@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 import cv2
@@ -19,7 +20,7 @@ from surgisense.data import CLASSES, FrameDataset, collate, load_config, load_in
 from surgisense.detector import ToolDetector, predict
 from surgisense.experiment import device, hardware
 from surgisense.metrics import detection_metrics, flicker, multilabel_report, segment_iou
-from surgisense.temporal import FramePresence, TemporalPresence
+from surgisense.temporal import FramePresence, TemporalPresence, left_padded_window
 
 OUT = Path("evaluation")
 
@@ -109,10 +110,7 @@ def presence_probs(model, ckpt, records, feats, dev) -> torch.Tensor:
     for idxs in by_video.values():
         idxs = sorted(idxs, key=lambda i: records[i]["frame"])
         for t, i in enumerate(idxs):
-            start = max(0, t - window + 1)
-            seq = feats[idxs[start : t + 1]]
-            if len(seq) < window:
-                seq = torch.cat([seq[:1].repeat(window - len(seq), 1), seq], 0)
+            seq = left_padded_window(feats[idxs[max(0, t - window + 1) : t + 1]], window)
             probs[i] = torch.sigmoid(model(seq[None].to(dev)))[0].cpu()
     return probs
 
@@ -487,7 +485,10 @@ def score_detectors(splits: dict, cfg: dict, dev, ckpt_dir: Path = Path("checkpo
             "test": detection_metrics(collected[tag]["test"], len(CLASSES)),
             "val": detection_metrics(collected[tag]["val"], len(CLASSES)),
         }
-        print(f"{tag} val mAP@0.5 {detectors[tag]['val']['map50']:.3f}, test mAP@0.5 {detectors[tag]['test']['map50']:.3f}")
+        print(
+            f"{tag} val mAP@0.5 {detectors[tag]['val']['map50']:.3f}, test mAP@0.5 {detectors[tag]['test']['map50']:.3f}",
+            file=sys.stderr,
+        )
     return detectors, collected
 
 
@@ -502,7 +503,7 @@ def load_or_extract_features(path: Path, splits: dict, dev, cfg: dict, extract_f
     if extract_fn is None:
         from surgisense.train_temporal import extract as extract_fn
     size = (cfg["image_height"], cfg["image_width"])
-    print(f"{path} not found; extracting frozen features for val and test (no training)")
+    print(f"{path} not found; extracting frozen features for val and test (no training)", file=sys.stderr)
     feats = {split: extract_fn(splits[split], dev, cfg["temporal"]["batch_size"], size) for split in ("val", "test")}
     path.parent.mkdir(parents=True, exist_ok=True)
     torch.save(feats, path)
@@ -518,7 +519,7 @@ def main() -> None:
     p.add_argument(
         "--detectors-only",
         action="store_true",
-        help="only score the detector checkpoints and print the metrics; writes nothing and needs no ImageNet weights",
+        help="only score the detector checkpoints and print the metrics as JSON on stdout (progress goes to stderr); writes nothing and needs no ImageNet weights",
     )
     args = p.parse_args()
     cfg = load_config(args.config)

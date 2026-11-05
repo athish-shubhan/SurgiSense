@@ -66,7 +66,7 @@ bash ros2/run_demo.sh 20
 .venv/bin/python -m pytest
 ```
 
-Checkpoints from the recorded runs are in `checkpoints/`, so evaluation and inference can be repeated without training if the clips are downloaded. `evaluate` extracts the frozen features itself when `data/processed/features.pt` is missing; it no longer requires `train-temporal`, which would retrain and overwrite the temporal checkpoints. `evaluate --detectors-only` re-scores just the two detectors, prints the metrics, writes nothing and needs no ImageNet weights. A CPU re-check of the detector numbers on another machine is in `docs/experiments.md`. The baseline run in `experiments/20260930-024057-baseline` used CPU because that process did not see MPS. Later runs used MPS.
+Checkpoints from the recorded runs are in `checkpoints/`, so evaluation and inference can be repeated without training if the clips are downloaded. `evaluate` extracts the frozen features itself when `data/processed/features.pt` is missing; it no longer requires `train-temporal`, which would retrain and overwrite the temporal checkpoints. `evaluate --detectors-only` re-scores just the two detectors, prints the metrics as JSON on stdout (progress goes to stderr, so it pipes into `jq`), writes nothing and needs no ImageNet weights. A CPU re-check of the detector numbers on another machine is in `docs/experiments.md`. The baseline run in `experiments/20260930-024057-baseline` used CPU because that process did not see MPS. Later runs used MPS.
 
 ## ROS 2 and the arm
 

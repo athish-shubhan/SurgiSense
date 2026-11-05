@@ -198,3 +198,66 @@ and the joint angles agree to 1.4e-16.
 
 `src/surgisense/context.py`, `ros2/context_node.py`, `ros2/assistant_node.py`, `tests/test_recorded_replay.py` (new),
 `README.md`, `IMPROVEMENTS.md`
+
+## Round 4 (2026-11-05): review of rounds 1–3, and two fixes it found
+
+Rounds 1–3 (https://github.com/athish-shubhan/SurgiSense/pull/1, https://github.com/athish-shubhan/SurgiSense/pull/2,
+https://github.com/athish-shubhan/SurgiSense/pull/3) are merged. This round is a second pass over their merged
+diff, and its PR is a fresh branch from `main`.
+
+### What changed
+
+1. **`evaluate --detectors-only` now prints valid JSON.** Round 2 said the command "prints … as JSON", but
+   the two progress lines (`baseline val mAP@0.5 …`) went to stdout first, so `… | jq` failed. Round 2's test
+   only passed because it sliced the output from the first `{`. Progress now goes to stderr, and the test
+   parses stdout as-is.
+2. **One temporal-window helper instead of three copies.** Round 1 tested that training (`make_windows`) and
+   evaluation (`presence_probs`) build identical GRU windows, but `infer.py` had a third copy of the logic
+   that nothing tested. `temporal.left_padded_window` is now the only implementation, and all three call it.
+3. **Inference history is bounded.** `infer.py` appended every frame's feature vector to a list and only ever
+   read the last `window` entries. It now uses `deque(maxlen=window)`, so memory no longer grows with the
+   length of the stream.
+
+### Why it matters
+
+A README command that does not do what it says is worse than no command. The GRU's results depend on the
+windows being built the same way in training and at inference, and only two of the three paths were checked.
+
+### How it was verified
+
+```
+$ python -m pyflakes src tests ros2        # clean
+$ python -m pytest
+36 passed in 4.53s                         # was 34
+```
+
+New and changed tests:
+
+- `test_left_padded_window_short_exact_and_long_histories`
+- `test_streaming_inference_windows_match_training_windows`: the bounded-deque streaming path used by
+  `infer.py` produces exactly the tensors `make_windows` produces.
+- `test_detectors_only_prints_metrics_and_writes_nothing`, which now runs `json.loads(stdout)` with nothing
+  sliced off. With the fix stashed it fails with
+  `JSONDecodeError: Expecting value: line 1 column 1 (char 0)`.
+
+On the real SurgVU clips (CPU):
+
+```
+$ python -m surgisense evaluate --detectors-only 2>err.txt | python -c "import json,sys; ..."
+{'baseline': {'val': 0.2897, 'test': 0.3003}, 'aug': {'val': 0.3263, 'test': 0.2438}}
+```
+
+These are identical to round 2's numbers, so the refactor changed no detector result. The window refactor is
+covered by the existing train/eval equality test plus the new streaming test.
+
+### Not verified
+
+- `infer` itself was not run: it needs the ImageNet MobileNetV3 weights, which the sandbox cannot download.
+  Its new code path is covered only by the streaming-equality test, which uses the same helper and deque.
+- Retraining the temporal heads was not repeated after the `make_windows` refactor. The unchanged equality
+  tests show the windows are byte-for-byte identical, so training would see the same inputs.
+
+### Files touched
+
+`src/surgisense/temporal.py`, `src/surgisense/train_temporal.py`, `src/surgisense/evaluate.py`,
+`src/surgisense/infer.py`, `tests/test_temporal_windows.py`, `tests/test_evaluate.py`, `README.md`, `IMPROVEMENTS.md`
