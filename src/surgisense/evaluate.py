@@ -473,28 +473,13 @@ def write_report(results: dict, path: Path) -> None:
     path.write_text("\n".join(lines))
 
 
-def main() -> None:
-    import argparse
-
-    p = argparse.ArgumentParser(description="Evaluate SurgiSense checkpoints")
-    p.add_argument("--config", default="configs/default.yaml")
-    p.add_argument("--index", default="data/processed/index.json")
-    args = p.parse_args()
-    cfg = load_config(args.config)
-    dev = device()
-    index = load_index(args.index)
-    splits = {name: records_for_split(index, name) for name in ("val", "test")}
-    feat_path = Path("data/processed/features.pt")
-    if not feat_path.exists():
-        raise SystemExit("missing data/processed/features.pt. Run train_temporal first.")
-    feats = torch.load(feat_path, weights_only=False)
-    OUT.mkdir(exist_ok=True)
-    (OUT / "predictions").mkdir(exist_ok=True)
-
+@torch.no_grad()
+def score_detectors(splits: dict, cfg: dict, dev, ckpt_dir: Path = Path("checkpoints")) -> tuple[dict, dict]:
+    """Run each saved detector on val and test. Returns (metrics per tag, raw samples per tag and split)."""
     detectors = {}
     collected = {}
     for tag in ("baseline", "aug"):
-        model, ckpt = load_detector(Path(f"checkpoints/detector_{tag}_best.pt"), dev)
+        model, ckpt = load_detector(ckpt_dir / f"detector_{tag}_best.pt", dev)
         collected[tag] = {split: collect(model, splits[split], dev, cfg) for split in ("val", "test")}
         detectors[tag] = {
             "val_map50": ckpt.get("best_map50"),
@@ -502,7 +487,59 @@ def main() -> None:
             "test": detection_metrics(collected[tag]["test"], len(CLASSES)),
             "val": detection_metrics(collected[tag]["val"], len(CLASSES)),
         }
-        print(f"{tag} test mAP@0.5 {detectors[tag]['test']['map50']:.3f}")
+        print(f"{tag} val mAP@0.5 {detectors[tag]['val']['map50']:.3f}, test mAP@0.5 {detectors[tag]['test']['map50']:.3f}")
+    return detectors, collected
+
+
+def load_or_extract_features(path: Path, splits: dict, dev, cfg: dict, extract_fn=None) -> dict:
+    """Frozen-encoder features for val/test, cached at `path`.
+
+    `train_temporal` writes this file, but it also retrains and overwrites the temporal
+    checkpoints. Extracting here lets the committed checkpoints be evaluated as they are.
+    """
+    if path.exists():
+        return torch.load(path, weights_only=False)
+    if extract_fn is None:
+        from surgisense.train_temporal import extract as extract_fn
+    size = (cfg["image_height"], cfg["image_width"])
+    print(f"{path} not found; extracting frozen features for val and test (no training)")
+    feats = {split: extract_fn(splits[split], dev, cfg["temporal"]["batch_size"], size) for split in ("val", "test")}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    torch.save(feats, path)
+    return feats
+
+
+def main() -> None:
+    import argparse
+
+    p = argparse.ArgumentParser(description="Evaluate SurgiSense checkpoints")
+    p.add_argument("--config", default="configs/default.yaml")
+    p.add_argument("--index", default="data/processed/index.json")
+    p.add_argument(
+        "--detectors-only",
+        action="store_true",
+        help="only score the detector checkpoints and print the metrics; writes nothing and needs no ImageNet weights",
+    )
+    args = p.parse_args()
+    cfg = load_config(args.config)
+    dev = device()
+    index = load_index(args.index)
+    splits = {name: records_for_split(index, name) for name in ("val", "test")}
+
+    if args.detectors_only:
+        detectors, _ = score_detectors(splits, cfg, dev)
+        summary = {
+            tag: {split: {k: d[split][k] for k in ("map50", "map50_95")} for split in ("val", "test")}
+            for tag, d in detectors.items()
+        }
+        print(json.dumps(_clean({"device": str(dev), "detectors": summary}), indent=2))
+        return
+
+    feats = load_or_extract_features(Path("data/processed/features.pt"), splits, dev, cfg)
+    OUT.mkdir(exist_ok=True)
+    (OUT / "predictions").mkdir(exist_ok=True)
+
+    detectors, collected = score_detectors(splits, cfg, dev)
 
     selected = max(detectors, key=lambda tag: detectors[tag]["val_map50"] or -1)
     presence = {}
