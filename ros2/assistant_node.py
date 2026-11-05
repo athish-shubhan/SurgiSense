@@ -27,11 +27,9 @@ def main() -> None:
 
     def on_msg(msg: String) -> None:
         state = json.loads(msg.data)
-        # Context already set `uncertain` from the validation threshold.
-        if state["uncertain"] or not state["tools"]:
-            cmd = {"mode": "hold", "tool": None, "joints": None, "reason": "uncertain"}
-        else:
-            cmd = assistant_command(state, 0.0)
+        # Context already set `uncertain` from the validation threshold, so no second threshold here:
+        # this holds when the state is uncertain or has no tools, and tracks the top tool otherwise.
+        cmd = assistant_command(state, 0.0)
         q = sim.step(cmd["joints"])
         out = {
             "frame": state["frame"],

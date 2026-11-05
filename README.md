@@ -42,7 +42,7 @@ python3.10 -m venv .venv
 .venv/bin/python -m pytest
 ```
 
-They cover the mAP / precision-recall / macro-F1 code against hand-computed cases, box decoding and per-class NMS, the per-video temporal windows (and that training and evaluation build identical windows), the hold/track rule, and the MuJoCo arm. CI (`.github/workflows/tests.yml`) runs pyflakes and the suite on every push and pull request, on Linux with CPU-only PyTorch.
+They cover the mAP / precision-recall / macro-F1 code against hand-computed cases, box decoding and per-class NMS, the per-video temporal windows (and that training and evaluation build identical windows), the hold/track rule, and the MuJoCo arm. `tests/test_recorded_replay.py` replays the committed `evaluation/inference/predictions.jsonl` through the same context, assistant and arm code the ROS nodes use, and checks the 417 track / 454 hold counts and the logged arm trajectory without a model or ROS. CI (`.github/workflows/tests.yml`) runs pyflakes and the suite on every push and pull request, on Linux with CPU-only PyTorch.
 
 ## Reproduce
 
