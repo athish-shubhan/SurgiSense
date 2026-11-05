@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from surgisense.data import CLASSES, FrameDataset, collate, load_config, load_index, records_for_split
 from surgisense.experiment import device, write_experiment
 from surgisense.metrics import multilabel_report
-from surgisense.temporal import FeatureEncoder, FramePresence, TemporalPresence
+from surgisense.temporal import FeatureEncoder, FramePresence, TemporalPresence, left_padded_window
 from surgisense.train_detector import set_seed
 
 
@@ -44,13 +44,7 @@ def make_windows(records: list[dict], feats: torch.Tensor, window: int) -> tuple
     for idxs in by_video.values():
         idxs = sorted(idxs, key=lambda i: records[i]["frame"])
         for t, i in enumerate(idxs):
-            start = max(0, t - window + 1)
-            seq_idx = idxs[start : t + 1]
-            seq = feats[seq_idx]
-            if len(seq) < window:
-                pad = seq[:1].repeat(window - len(seq), 1)
-                seq = torch.cat([pad, seq], 0)
-            xs.append(seq)
+            xs.append(left_padded_window(feats[idxs[max(0, t - window + 1) : t + 1]], window))
             ys.append(labels[i])
     return torch.stack(xs), torch.stack(ys)
 

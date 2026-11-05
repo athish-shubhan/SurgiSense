@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import time
+from collections import deque
 from pathlib import Path
 
 import cv2
@@ -15,7 +16,7 @@ from surgisense.data import CLASSES, IMAGENET_MEAN, IMAGENET_STD, load_config
 from surgisense.detector import ToolDetector, predict
 from surgisense.evaluate import load_temporal
 from surgisense.experiment import device
-from surgisense.temporal import FeatureEncoder
+from surgisense.temporal import FeatureEncoder, left_padded_window
 
 
 def _load_detector(path, dev):
@@ -83,9 +84,9 @@ def main() -> None:
     writer = cv2.VideoWriter(str(out / "overlay.mp4"), cv2.VideoWriter_fourcc(*"mp4v"), 4.0, (width, height))
     times = []
     rows = []
-    feat_hist: list[torch.Tensor] = []
-    history, prev_uncertain = [], True
     window = int(tckpt.get("window") or 1)
+    feat_hist: deque[torch.Tensor] = deque(maxlen=window)  # only the last `window` frames are ever used
+    history, prev_uncertain = [], True
     seen = 0
     warmup = 8
     while True:
@@ -121,10 +122,8 @@ def main() -> None:
             if tckpt["kind"] == "frame":
                 prob = torch.sigmoid(temporal(feat[None].to(dev)))[0].cpu()
             else:
-                seq = feat_hist[-window:]
-                if len(seq) < window:
-                    seq = [seq[0]] * (window - len(seq)) + seq
-                prob = torch.sigmoid(temporal(torch.stack(seq)[None].to(dev)))[0].cpu()
+                seq = left_padded_window(torch.stack(list(feat_hist)), window)
+                prob = torch.sigmoid(temporal(seq[None].to(dev)))[0].cpu()
             if dev.type == "mps":
                 torch.mps.synchronize()
         t_temporal = time.perf_counter()

@@ -74,8 +74,9 @@ def test_detectors_only_prints_metrics_and_writes_nothing(workspace, monkeypatch
     evaluate.main()
     after = sorted(p.relative_to(root) for p in root.rglob("*"))
     assert after == before
-    out = capsys.readouterr().out
-    summary = json.loads(out[out.index("{"):])
+    captured = capsys.readouterr()
+    summary = json.loads(captured.out)  # stdout is only the JSON, so it can be piped to jq
+    assert "baseline val mAP@0.5" in captured.err
     assert summary["device"] == "cpu"
     assert set(summary["detectors"]["aug"]) == {"val", "test"}
     assert set(summary["detectors"]["aug"]["test"]) == {"map50", "map50_95"}
