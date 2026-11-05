@@ -32,6 +32,18 @@ Temporal: frozen MobileNetV3-Small pooled features. A linear head, and a GRU (hi
 
 Confidence for the arm is `min(top box score, temporal probability of that class)`. The validation sweep in `evaluation/threshold.json` picked 0.35.
 
+## Tests
+
+The tests use synthetic tensors and need no SurgVU download, no GPU and no ROS:
+
+```bash
+python3.10 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -m pytest
+```
+
+They cover the mAP / precision-recall / macro-F1 code against hand-computed cases, box decoding and per-class NMS, the per-video temporal windows (and that training and evaluation build identical windows), the hold/track rule, and the MuJoCo arm. CI (`.github/workflows/tests.yml`) runs pyflakes and the suite on every push and pull request, on Linux with CPU-only PyTorch.
+
 ## Reproduce
 
 Python 3.10. ROS 2 Jazzy is only needed for the topic demo; it lives in `.rosenv` and is not part of training.
@@ -51,7 +63,7 @@ export PYTHONPATH=src MPLCONFIGDIR=$PWD/.mpl PYTORCH_ENABLE_MPS_FALLBACK=1
 .venv/bin/python -m surgisense simulate
 .venv/bin/python -m surgisense dashboard --serve
 bash ros2/run_demo.sh 20
-PYTHONPATH=src .venv/bin/python -m pytest tests -q
+.venv/bin/python -m pytest
 ```
 
 Checkpoints from the recorded runs are in `checkpoints/`, so inference can be repeated without training if the clips are downloaded. The baseline run in `experiments/20260930-024057-baseline` used CPU because that process did not see MPS. Later runs used MPS.
