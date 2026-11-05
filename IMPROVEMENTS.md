@@ -139,3 +139,62 @@ sandbox. Nothing was written before the failure.
 ### Files touched
 
 `src/surgisense/evaluate.py`, `tests/test_evaluate.py` (new), `docs/experiments.md`, `README.md`, `IMPROVEMENTS.md`
+
+## Round 3 (2026-11-05): the ROS replay numbers checked in CI; node logic testable without ROS
+
+Stacked on round 2 (`improve/round-2`).
+
+### What changed
+
+1. **`ContextTracker` (`surgisense/context.py`).** The context node kept its history and previous-uncertainty
+   flag in `nonlocal` variables inside a ROS callback, so that logic could only run under `rclpy`. It is now a
+   small class with `update(message) -> SurgicalState`. `ros2/context_node.py` calls it, with no change in
+   behaviour.
+2. **The assistant node's special case is gone.** `ros2/assistant_node.py` built its own hold command when
+   the state was uncertain or had no tools, and otherwise called `assistant_command(state, 0.0)`. That function
+   already returns the identical hold command in those two cases, because confidence is never below 0. The node
+   now calls it directly. The replay test below confirms the commands are identical on all 871 recorded frames.
+3. **`tests/test_recorded_replay.py` (4 tests).** It replays the committed `evaluation/inference/predictions.jsonl`
+   (what the perception node publishes) through `ContextTracker`, `assistant_command` and the MuJoCo `ArmSim`,
+   with no model and no ROS, and checks:
+   - 871 frames, **417 track / 454 hold**, the README's numbers
+   - every command equals the one `infer` logged
+   - modes and joint angles match the assistant node's logged `ros_trajectory.json` to `atol=1e-9`
+   - hold frames never move the arm
+
+### Why it matters
+
+The README's ROS claims ("stepped the MuJoCo arm for all 871 frames: 417 track, 454 hold. Hold frames do not
+move the joints") were backed only by a log file from one run on one Mac. Now CI re-derives them from the
+committed artifacts on every push, so a change to the context or arm code that alters them fails a test.
+
+### How it was verified
+
+```
+$ python -m pytest                                  # round 2 -> round 3
+30 passed  ->  34 passed in 4.39s
+$ python -m pyflakes src tests ros2                 # clean
+```
+
+Before changing any code, the same replay was run as a standalone script on round 2's code. That shows the
+claims held already, and that the refactor did not change them:
+
+```
+frames 871 871 hold 454 track 417
+mode mismatches vs ROS log 0 vs infer log 0 max joint diff 1.3877787807814457e-16
+```
+
+The recorded trajectory came from macOS arm64. This replay ran on Linux x86_64 with the same pinned MuJoCo 3.3.7,
+and the joint angles agree to 1.4e-16.
+
+### Not verified
+
+- The ROS nodes themselves were not launched: there is no ROS 2 Jazzy here. `context_node.py` and
+  `assistant_node.py` now delegate to the tested functions, but the `rclpy` wiring around them is untested.
+- `infer` was not re-run, because it needs the ImageNet MobileNetV3 weights, which the sandbox cannot
+  download. The replay starts from its committed output.
+
+### Files touched
+
+`src/surgisense/context.py`, `ros2/context_node.py`, `ros2/assistant_node.py`, `tests/test_recorded_replay.py` (new),
+`README.md`, `IMPROVEMENTS.md`

@@ -89,3 +89,33 @@ def assistant_command(state: dict, threshold: float) -> dict:
     tool = state["tools"][0]["name"]
     pose = POSES.get(tool, (0.0, 0.6))
     return {"mode": "track", "tool": tool, "joints": [float(pose[0]), float(pose[1])], "reason": "confident"}
+
+
+class ContextTracker:
+    """The state the context node keeps between perception messages.
+
+    `update` turns one perception message (a `SurgicalState` dict as published by the
+    perception node) into the next state, carrying history and the previous uncertainty
+    flag forward. The ROS node and the offline replay test both go through this.
+    """
+
+    def __init__(self, threshold: float):
+        self.threshold = threshold
+        self.history: list[list[str]] = []
+        self.prev_uncertain = True
+
+    def update(self, raw: dict) -> SurgicalState:
+        state = build_state(
+            raw["timestamp"],
+            raw["video"],
+            raw["frame"],
+            raw["tools"],
+            raw["presence"],
+            self.threshold,
+            self.history,
+            self.prev_uncertain,
+            raw.get("latency_ms"),
+        )
+        self.prev_uncertain = state.uncertain
+        self.history = state.history
+        return state

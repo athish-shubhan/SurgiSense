@@ -8,7 +8,7 @@ from pathlib import Path
 
 import yaml
 
-from surgisense.context import build_state
+from surgisense.context import ContextTracker
 
 
 def main() -> None:
@@ -32,25 +32,10 @@ def main() -> None:
     rclpy.init()
     node = Node("context", enable_rosout=False, start_parameter_services=False)
     pub = node.create_publisher(String, "/surgical/context", qos)
-    history: list[list[str]] = []
-    prev_uncertain = True
+    tracker = ContextTracker(threshold)
 
     def on_msg(msg: String) -> None:
-        nonlocal history, prev_uncertain
-        raw = json.loads(msg.data)
-        state = build_state(
-            raw["timestamp"],
-            raw["video"],
-            raw["frame"],
-            raw["tools"],
-            raw["presence"],
-            threshold,
-            history,
-            prev_uncertain,
-            raw.get("latency_ms"),
-        )
-        prev_uncertain = state.uncertain
-        history = state.history
+        state = tracker.update(json.loads(msg.data))
         out = String()
         out.data = json.dumps(state.to_dict())
         pub.publish(out)
