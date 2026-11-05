@@ -36,6 +36,28 @@ Feature extraction: 96.7 s for train, validation, and test. Frame-head validatio
 
 Test macro-F1, from `evaluate`: frame head 0.234, window 16 0.294. Test predicted flicker: 0.053 and 0.019. Window 4 was not evaluated on the test clip.
 
+## Independent CPU re-check (2026-11-05)
+
+The two committed detector checkpoints were re-scored on a fresh download of the clips, on a different machine:
+Linux x86_64, CPU only, Python 3.11, PyTorch 2.14.0 from PyPI. Preprocessing gave the same split sizes
+(3795 / 512 / 871 frames).
+
+```
+python -m surgisense download && python -m surgisense preprocess
+python -m surgisense evaluate --detectors-only        # 1 min 23 s wall on this CPU
+```
+
+| detector | val mAP@0.5 recorded (MPS) → CPU | test mAP@0.5 recorded (MPS) → CPU | test mAP@0.5:0.95 recorded → CPU |
+| --- | --- | --- | --- |
+| baseline | 0.286 → 0.290 | 0.304 → 0.300 | 0.083 → 0.083 |
+| aug | 0.321 → 0.326 | 0.241 → 0.244 | 0.061 → 0.063 |
+
+Every value is within 0.005 of the recorded one. The conclusions hold: augmentation wins on validation and
+loses on the test clip, and vessel sealer AP@0.5 is 0 for both. The cause of the small gap (MPS vs CPU
+kernels, or JPEG decoding on a different OpenCV build) was not isolated. The temporal and GRU numbers were not
+re-checked, because the sandbox could not download the ImageNet MobileNetV3 weights that feature extraction
+needs. The recorded figures above are unchanged.
+
 ## Evaluation and the arm
 
 `evaluation/report.md` is the comparison table. `evaluation/results.json` is the same content with per-class average precision, the threshold sweep, and the confusion matrix.

@@ -71,3 +71,71 @@ sandbox, so the first CI run on this PR is the check for that step.
 
 `tests/test_metrics.py` (new), `tests/test_temporal_windows.py` (new), `tests/test_detector_decode.py` (new),
 `.github/workflows/tests.yml` (new), `pyproject.toml`, `src/surgisense/evaluate.py`, `README.md`, `IMPROVEMENTS.md` (new)
+
+## Round 2 (2026-11-05): evaluate the committed checkpoints without retraining, independent CPU re-check
+
+Stacked on round 1 (`improve/round-1`).
+
+### What changed
+
+1. **`evaluate` no longer needs `train-temporal`.** It used to exit with "missing data/processed/features.pt.
+   Run train_temporal first". `train_temporal` retrains the frame and GRU heads and overwrites
+   `checkpoints/temporal_*.pt`, so the committed checkpoints the README offers could not be evaluated as they
+   were. `evaluate` now extracts the frozen-encoder features for val and test itself (no training) and caches
+   them (`load_or_extract_features`).
+2. **`python -m surgisense evaluate --detectors-only`.** It re-scores the two committed detector checkpoints on
+   val and test, prints mAP@0.5 and mAP@0.5:0.95 as JSON, writes nothing, and needs no ImageNet download. The
+   detector loop was moved into `score_detectors()` so both paths share it.
+3. **The headline detector numbers were re-measured** on a different machine (CPU, Linux) and recorded in
+   `docs/experiments.md` next to the original MPS figures. The README's numbers are unchanged.
+4. **Tests.** `tests/test_evaluate.py` (3 tests, synthetic JPEG frames and random-weight checkpoints):
+   - `score_detectors` end to end
+   - `evaluate --detectors-only` prints metrics and leaves the working tree byte-for-byte unchanged
+   - features are extracted once, then reused from the cache
+
+### Why it matters
+
+A reader who downloads the clips should be able to check the README's numbers from the committed checkpoints.
+Before this change, the only route was to retrain the temporal models first. Now it is one command, and the
+detector numbers have been reproduced independently.
+
+### How it was verified
+
+```
+$ python -m pytest                                   # round 1 -> round 2
+27 passed  ->  30 passed in 3.31s
+$ python -m pyflakes src tests ros2                  # clean
+
+$ python -m surgisense download && python -m surgisense preprocess
+{"train": 3795, "val": 512, "test": 871}             # same split sizes as the README table
+
+$ time python -m surgisense evaluate --detectors-only
+baseline val mAP@0.5 0.290, test mAP@0.5 0.300
+aug val mAP@0.5 0.326, test mAP@0.5 0.244
+real 1m22.655s
+```
+
+| detector | val mAP@0.5, recorded (MPS) → CPU | test mAP@0.5, recorded → CPU | test mAP@0.5:0.95, recorded → CPU |
+| --- | --- | --- | --- |
+| baseline | 0.286 → 0.290 | 0.304 → 0.300 | 0.083 → 0.083 |
+| aug | 0.321 → 0.326 | 0.241 → 0.244 | 0.061 → 0.063 |
+
+Every value is within 0.005 of the recorded one. The README's conclusions hold: augmentation wins on validation
+and loses on test, and vessel sealer AP is 0 for both.
+
+The full `python -m surgisense evaluate` was also run. It now reaches feature extraction instead of exiting,
+then stops on `URLError: Tunnel connection failed: 403` for `download.pytorch.org`. That host is blocked in this
+sandbox. Nothing was written before the failure.
+
+### Not verified
+
+- The temporal numbers: frame head macro-F1 0.234, GRU 0.294, validation 0.491 / 0.493 / 0.422, and the gated
+  mAP of 0.226. The threshold 0.35 and the hold/track counts were not re-run either. All of these need the
+  ImageNet MobileNetV3 weights, which the sandbox cannot download.
+- The cause of the ≤0.005 mAP gap between the recorded MPS run and this CPU run was not isolated. It could be
+  the kernels, or JPEG decoding with a different OpenCV build.
+- 67.1 ms/frame on an M1 with MPS: there is no Apple hardware here.
+
+### Files touched
+
+`src/surgisense/evaluate.py`, `tests/test_evaluate.py` (new), `docs/experiments.md`, `README.md`, `IMPROVEMENTS.md`
