@@ -18,7 +18,7 @@ from surgisense.context import assistant_command, build_state
 from surgisense.data import CLASSES, FrameDataset, collate, load_config, load_index, records_for_split
 from surgisense.detector import ToolDetector, predict
 from surgisense.experiment import device, hardware
-from surgisense.metrics import detection_metrics, flicker, multilabel_report, precision_recall, segment_iou
+from surgisense.metrics import detection_metrics, flicker, multilabel_report, segment_iou
 from surgisense.temporal import FramePresence, TemporalPresence
 
 OUT = Path("evaluation")
@@ -279,7 +279,6 @@ def failure_analysis(samples, model_hw: tuple[int, int]) -> dict:
         }
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         blur = float(cv2.Laplacian(gray, cv2.CV_64F).var())
-        key = (sample["video"], sample["frame"])
         prev_img = prev.get(sample["video"])
         motion = None
         if prev_img is not None and prev_img[0] + 1 == sample["frame"]:
