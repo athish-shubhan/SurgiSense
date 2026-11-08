@@ -432,6 +432,14 @@ def write_report(results: dict, path: Path) -> None:
         )
     lines += [
         "",
+        "Validation AP@0.5 by class. Selection uses the mean of these, so a class at 0 for both models leaves one class deciding:",
+        "",
+    ]
+    for name, row in d.items():
+        per_class = ", ".join(f"{CLASSES[int(c)]} {fmt(ap)}" for c, ap in row["val"]["per_class_ap50"].items())
+        lines.append(f"- {name}: {per_class}")
+    lines += [
+        "",
         "## Temporal presence",
         "",
         "| model | val macro-F1 | test macro-F1 | test segment IoU | pred flicker | gt flicker |",

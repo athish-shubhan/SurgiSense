@@ -49,6 +49,8 @@ def main() -> None:
     p.add_argument("--temporal", default="checkpoints/temporal_best.pt")
     p.add_argument("--out", default="evaluation/inference")
     p.add_argument("--max-frames", type=int, default=0)
+    p.add_argument("--device", choices=["auto", "cpu", "mps", "cuda"], default="auto")
+    p.add_argument("--no-video", action="store_true", help="skip the overlay video and frame snapshots")
     args = p.parse_args()
     cfg = load_config(args.config)
     checkpoint = args.checkpoint
@@ -60,7 +62,7 @@ def main() -> None:
                 checkpoint = f"checkpoints/detector_{selected}_best.pt"
         if not checkpoint:
             checkpoint = "checkpoints/detector_aug_best.pt"
-    dev = device()
+    dev = device() if args.device == "auto" else torch.device(args.device)
     if not Path(checkpoint).exists():
         raise SystemExit(f"missing detector checkpoint {checkpoint}")
     if not Path(args.video).exists():
@@ -81,7 +83,9 @@ def main() -> None:
     frame_dir.mkdir(parents=True, exist_ok=True)
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    writer = cv2.VideoWriter(str(out / "overlay.mp4"), cv2.VideoWriter_fourcc(*"mp4v"), 4.0, (width, height))
+    writer = None
+    if not args.no_video:
+        writer = cv2.VideoWriter(str(out / "overlay.mp4"), cv2.VideoWriter_fourcc(*"mp4v"), 4.0, (width, height))
     times = []
     rows = []
     window = int(tckpt.get("window") or 1)
@@ -152,6 +156,10 @@ def main() -> None:
         history = state.history
         if seen >= warmup:
             times.append(latency)
+        rows.append({"state": state.to_dict(), "command": cmd})
+        seen += 1
+        if writer is None:
+            continue
         vis = frame.copy()
         for tool in tools:
             if tool["score"] < 0.2:
@@ -162,16 +170,19 @@ def main() -> None:
         banner = f"{'HOLD' if cmd['mode']=='hold' else 'TRACK'} conf {state.confidence:.2f}"
         cv2.putText(vis, banner, (8, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
         writer.write(vis)
-        if seen % 40 == 0:
-            cv2.imwrite(str(frame_dir / f"{seen:06d}.jpg"), vis)
-        rows.append({"state": state.to_dict(), "command": cmd})
-        seen += 1
+        if (seen - 1) % 40 == 0:
+            cv2.imwrite(str(frame_dir / f"{seen - 1:06d}.jpg"), vis)
     cap.release()
-    writer.release()
+    if writer is not None:
+        writer.release()
     if not times:
         raise SystemExit("video produced no timed frames")
     def avg(key):
         return float(np.mean([t[key] for t in times]))
+
+    def pct(key):
+        vals = np.asarray([t[key] for t in times])
+        return {q: float(np.percentile(vals, int(q[1:]))) for q in ("p50", "p95", "p99")}
     rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     if platform.system() == "Darwin":
         rss_mb = rss / (1024 * 1024)
@@ -195,6 +206,7 @@ def main() -> None:
         "post_ms": avg("post_ms"),
         "total_ms": avg("total_ms"),
         "fps": 1000.0 / avg("total_ms"),
+        "percentiles_ms": {key: pct(key) for key in ("detector_ms", "post_ms", "temporal_ms", "total_ms")},
         "max_rss_mb": rss_mb,
         "mps_allocated_mb": (torch.mps.current_allocated_memory() / (1024 * 1024)) if dev.type == "mps" else None,
         "hold_frames": sum(1 for r in rows if r["command"]["mode"] == "hold"),
