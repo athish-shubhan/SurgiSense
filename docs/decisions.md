@@ -25,3 +25,15 @@ Gazebo, Webots, and Isaac were not installed. The disk is small, and a second si
 A custom message package would mean building this workspace under ROS. The state is already JSON, so the topics are `std_msgs/String`, one process each.
 
 Fast DDS, including a UDP-only profile, reported zero subscribers on this Mac (the ROS prefix path contains a space). CycloneDDS with shared memory off and interface `lo0` delivered the frames. The failed Fast DDS profile was removed; the working config is `ros2/cyclonedds.xml`.
+
+## Considered and not done
+
+Longer write-ups for the two larger changes are in `docs/adr/`.
+
+- **Leave-one-video-out cross-validation.** The most important missing experiment. Validation and test share no tools, and both detectors score AP 0 on cadiere forceps in validation, so detector selection was decided by needle driver alone. Seven folds would turn one noisy comparison into seven paired ones. It needs 14 detector runs and was not run on this 8 GB machine. The faster validation pass (ADR 0002) removes most of the per-epoch overhead.
+- **A memory-mapped cache of resized frames.** Decoding and resizing the 640x512 JPEGs is about half of a training step (110 of 227 ms measured). It was not built or verified with the disk space available.
+- **Live inference inside ROS.** The ROS environment (`.rosenv`, Python 3.11, conda) has no torch, and the training environment (Python 3.10) has no rclpy. Perception replays the logged inference stream instead. Live inference is a packaging problem, not a design one.
+- **Docker image for the ROS demo.** MPS is not available inside containers on macOS, and a `ros:jazzy` image with CPU torch could not be built and tested here. An unverified Dockerfile was left out.
+- **A single shared backbone for detection and presence.** The temporal encoder is a second, frozen MobileNet. Sharing the detector trunk needs retraining and a new comparison.
+- **A broker, Kubernetes or a model server.** One machine and three processes at 15 Hz; ROS 2 topics are already the transport.
+- **QoS deadline/liveliness events instead of the watchdog.** See ADR 0001. They would complement it, but behaviour on this RMW and conda build was not tested.

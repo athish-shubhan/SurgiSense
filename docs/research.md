@@ -70,13 +70,15 @@ Using the GRU to rescale or drop detector boxes does not help localization of th
 
 On the test clip, with the augmented detector and the 16-frame GRU, the dataset loader counts 461 hold frames and 410 track frames. Sequential inference on `7_fps1.mp4` counts 454 hold and 417 track. ROS 2 replay of that inference log matches the video count: 417 track, 454 hold, backend `mujoco`, 871 messages received. Consecutive hold frames keep the same joint position (0 changes in the ROS trajectory).
 
+The assistant node now steps the arm on its own 50 Hz timer and holds when no new context arrived for 0.25 s (ADR 0001). Recorded runs of that version are in `evaluation/ros/` (`nominal_summary.json`, `stall_summary.json`). The replay counts above come from the earlier message-driven node and `evaluation/sim_frames/ros_trajectory.json`; `tests/test_recorded_replay.py` reproduces them offline.
+
 The operating threshold 0.35 comes from the validation sweep in `evaluation/threshold.json`.
 
 ## Errors
 
 On the test clip, at IoU 0.5 and score 0.05, 326 ground-truth boxes are missed. Of those, 202 are confusions inside the forceps family, 112 coincide with frame-to-frame intensity change above 15, 16 touch the image border (101 border boxes exist), 8 are smaller than 32 px on the original frame (13 such boxes exist), and 41 are rare-class misses (clip applier, vessel sealer, grasping retractor). Median Laplacian variance is 982 on hits and 982 on misses, so blur does not separate them. Median motion is 12.8 on hits and 13.1 on misses.
 
-Example overlays, green ground truth and red predictions, are in `evaluation/failure_cases/`.
+Example overlays, green ground truth and red predictions, are written to `evaluation/failure_cases/` by `evaluate`. They contain SurgVU frames, so that folder is gitignored and not published.
 
 ## Speed
 
