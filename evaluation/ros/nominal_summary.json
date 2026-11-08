@@ -1,0 +1,59 @@
+{
+  "backend": "mujoco",
+  "control_hz": 50.0,
+  "stale_after_s": 0.25,
+  "ticks": 2723,
+  "ticks_by_reason": {
+    "startup": 93,
+    "confident": 1187,
+    "uncertain": 1369,
+    "stale": 74
+  },
+  "frames_accepted": 871,
+  "frames_rejected_out_of_order": 0,
+  "max_joint_change_on_hold_ticks": 0.0,
+  "stale_events": [
+    {
+      "t": 7.015753375017084,
+      "frame": 60,
+      "silent_ms": 269.7921250073705
+    },
+    {
+      "t": 9.05366750000394,
+      "frame": 88,
+      "silent_ms": 253.99508298141882
+    },
+    {
+      "t": 39.16434545800439,
+      "frame": 509,
+      "silent_ms": 268.9753749873489
+    },
+    {
+      "t": 44.92645029199775,
+      "frame": 588,
+      "silent_ms": 297.28866697405465
+    },
+    {
+      "t": 47.42120150002302,
+      "frame": 621,
+      "silent_ms": 250.2112920046784
+    },
+    {
+      "t": 47.737524750002194,
+      "frame": 624,
+      "silent_ms": 313.3752080029808
+    },
+    {
+      "t": 65.92496879200917,
+      "frame": 870,
+      "silent_ms": 262.5147090002429
+    }
+  ],
+  "perception_to_assistant_ms": {
+    "n": 871,
+    "p50": 14.667987823486328,
+    "p95": 153.96344661712646,
+    "p99": 247.22919464111322,
+    "max": 355.95011711120605
+  }
+}

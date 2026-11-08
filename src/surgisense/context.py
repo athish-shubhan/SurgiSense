@@ -83,9 +83,39 @@ def build_state(
     )
 
 
+@dataclass
+class Watchdog:
+    """Rejects stale, duplicate, and reordered perception, so the arm can hold.
+
+    The topics are best effort, so frames can drop or arrive out of order, and
+    a crashed perception process sends nothing at all. A frame is accepted only
+    if it is newer than the last accepted frame of the same clip. The state is
+    stale when nothing was accepted for `timeout_s`.
+    """
+
+    timeout_s: float
+    video: str | None = None
+    last_frame: int = -1
+    last_seen: float | None = None
+    rejected: int = 0
+
+    def accept(self, video: str, frame: int, now: float) -> bool:
+        if video == self.video and frame <= self.last_frame:
+            self.rejected += 1
+            return False
+        self.video, self.last_frame, self.last_seen = video, frame, now
+        return True
+
+    def stale(self, now: float) -> bool:
+        return self.last_seen is None or now - self.last_seen > self.timeout_s
+
+
+HOLD = {"mode": "hold", "tool": None, "joints": None}
+
+
 def assistant_command(state: dict, threshold: float) -> dict:
     if state["uncertain"] or float(state["confidence"]) < threshold or not state["tools"]:
-        return {"mode": "hold", "tool": None, "joints": None, "reason": "uncertain"}
+        return {**HOLD, "reason": "uncertain"}
     tool = state["tools"][0]["name"]
     pose = POSES.get(tool, (0.0, 0.6))
     return {"mode": "track", "tool": tool, "joints": [float(pose[0]), float(pose[1])], "reason": "confident"}

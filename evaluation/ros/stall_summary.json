@@ -1,0 +1,34 @@
+{
+  "backend": "mujoco",
+  "control_hz": 50.0,
+  "stale_after_s": 0.25,
+  "ticks": 3161,
+  "ticks_by_reason": {
+    "startup": 33,
+    "confident": 1408,
+    "uncertain": 1519,
+    "stale": 201
+  },
+  "frames_accepted": 871,
+  "frames_rejected_out_of_order": 0,
+  "max_joint_change_on_hold_ticks": 0.0,
+  "stale_events": [
+    {
+      "t": 23.165203042008216,
+      "frame": 299,
+      "silent_ms": 252.38995801191777
+    },
+    {
+      "t": 66.90382670899271,
+      "frame": 870,
+      "silent_ms": 255.64337498508394
+    }
+  ],
+  "perception_to_assistant_ms": {
+    "n": 871,
+    "p50": 9.186029434204102,
+    "p95": 65.07086753845215,
+    "p99": 124.46117401123024,
+    "max": 196.1221694946289
+  }
+}

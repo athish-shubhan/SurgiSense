@@ -8,7 +8,7 @@ from pathlib import Path
 
 import yaml
 
-from surgisense.context import ContextTracker
+from surgisense.context import ContextTracker, Watchdog
 
 
 def main() -> None:
@@ -33,11 +33,16 @@ def main() -> None:
     node = Node("context", enable_rosout=False, start_parameter_services=False)
     pub = node.create_publisher(String, "/surgical/context", qos)
     tracker = ContextTracker(threshold)
+    # Ordering only. The history and enter/exit events assume frames in order.
+    order = Watchdog(timeout_s=float("inf"))
 
     def on_msg(msg: String) -> None:
-        state = tracker.update(json.loads(msg.data))
+        raw = json.loads(msg.data)
+        if not order.accept(raw["video"], raw["frame"], 0.0):
+            return
+        state = tracker.update(raw)
         out = String()
-        out.data = json.dumps(state.to_dict())
+        out.data = json.dumps({**state.to_dict(), "published_at": raw.get("published_at"), "context_rejected": order.rejected})
         pub.publish(out)
         print(f"context frame {state.frame} uncertain={state.uncertain} conf={state.confidence:.2f}", flush=True)
 

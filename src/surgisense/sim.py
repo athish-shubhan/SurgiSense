@@ -32,6 +32,8 @@ def integrate(q: np.ndarray, target: np.ndarray | None, gain: float = 0.25) -> n
 
 
 class ArmSim:
+    timestep = 0.01  # seconds per step, matches <option timestep> above
+
     def __init__(self, backend: str = "auto"):
         self.q = np.zeros(2, dtype=np.float64)
         self.backend = "kinematic"

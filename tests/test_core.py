@@ -142,3 +142,37 @@ def test_config_roundtrip(tmp_path: Path):
 
     cfg = load_config(path)
     assert_disjoint_splits(cfg["splits"])
+
+
+def test_watchdog_rejects_reordered_and_detects_stale():
+    from surgisense.context import Watchdog
+
+    wd = Watchdog(timeout_s=0.25)
+    assert wd.stale(0.0)  # nothing received yet
+    assert wd.accept("7", 10, now=1.0)
+    assert not wd.stale(1.2)
+    assert wd.stale(1.3)
+    assert not wd.accept("7", 9, now=1.3)  # reordered
+    assert not wd.accept("7", 10, now=1.3)  # duplicate
+    assert wd.rejected == 2
+    assert wd.accept("8", 0, now=1.4)  # a new clip restarts the frame count
+    assert not wd.stale(1.5)
+
+
+def test_arm_holds_position_across_control_ticks():
+    sim = ArmSim(backend="mujoco")
+    for _ in range(20):
+        sim.step([0.6, 0.7], n=2)
+    q = sim.step(None, n=2)
+    for _ in range(50):
+        assert np.array_equal(sim.step(None, n=2), q)
+
+
+def test_publish_order_swaps_pairs():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("perception_node", Path(__file__).parents[1] / "ros2/perception_node.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    assert mod.publish_order(6, 0) == [0, 1, 2, 3, 4, 5]
+    assert mod.publish_order(6, 2) == [0, 1, 3, 2, 5, 4]
