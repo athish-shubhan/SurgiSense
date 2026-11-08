@@ -2,7 +2,7 @@
 
 import torch
 
-from surgisense.detector import _nms, decode_boxes, predict
+from surgisense.detector import decode_boxes, predict
 
 
 def test_decode_boxes_cell_centre_and_size():
@@ -32,11 +32,16 @@ def test_predict_clamps_boxes_to_the_image():
     assert box == [0.0, 0.0, 16.0, 16.0]
 
 
-def test_nms_suppresses_overlaps_only():
-    boxes = torch.tensor([[0.0, 0.0, 10.0, 10.0], [1.0, 0.0, 11.0, 10.0], [50.0, 50.0, 60.0, 60.0]])
-    scores = torch.tensor([0.8, 0.9, 0.7])
-    assert _nms(boxes, scores, iou_thr=0.4).tolist() == [1, 2]
-    assert _nms(torch.zeros(0, 4), torch.zeros(0), 0.4).numel() == 0
+def test_predict_suppresses_overlaps_of_the_same_class():
+    # Same layout as the per-class test below, but both cells are class 0, so the lower score is dropped.
+    pred = torch.zeros(1, 1 + 2 + 4, 1, 2)
+    pred[0, 0, 0, 0], pred[0, 0, 0, 1] = 10.0, 8.0
+    pred[0, 1] = 10.0
+    pred[0, 3, 0, 1] = -100.0
+    pred[0, 3, 0, 0] = 100.0
+    dets = predict(pred, (16, 32))[0]
+    assert dets["labels"].tolist() == [0]
+    assert len(dets["scores"]) == 1
 
 
 def test_predict_runs_nms_per_class():

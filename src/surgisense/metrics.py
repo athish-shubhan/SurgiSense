@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import numpy as np
 import torch
 
 
@@ -17,81 +18,79 @@ def box_iou_matrix(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     return inter / (area_a + area_b - inter + 1e-7)
 
 
-def _ap_11(scores_matched: list[bool], npos: int) -> float:
+IOU_THRESHOLDS = np.round(0.5 + 0.05 * np.arange(10), 2)
+RECALL_LEVELS = np.arange(101) / 100
+
+
+def average_precision(hits: np.ndarray, npos: int) -> float:
+    """COCO 101-point AP. hits are match flags for predictions in descending score order."""
     if npos <= 0:
         return float("nan")
-    if not scores_matched:
+    if len(hits) == 0:
         return 0.0
-    tp = 0
-    fp = 0
-    recs = []
-    precs = []
-    for hit in scores_matched:
-        if hit:
-            tp += 1
-        else:
-            fp += 1
-        recs.append(tp / npos)
-        precs.append(tp / (tp + fp))
-    ap = 0.0
-    for i in range(101):
-        level = i / 100
-        vals = [p for r, p in zip(recs, precs) if r >= level]
-        ap += max(vals) if vals else 0.0
-    return ap / 101
+    tp = np.cumsum(hits)
+    fp = np.cumsum(~hits)
+    recall = tp / npos
+    precision = tp / (tp + fp)
+    # Best precision at this recall or any higher one.
+    envelope = np.maximum.accumulate(precision[::-1])[::-1]
+    first = np.searchsorted(recall, RECALL_LEVELS, side="left")
+    reached = first < len(recall)
+    return float(envelope[first[reached]].sum() / len(RECALL_LEVELS))
 
 
-def _match(preds: list[tuple], gts: dict[str, list[torch.Tensor]], thr: float) -> list[bool]:
-    used = {k: set() for k in gts}
-    hits = []
-    for image_id, _score, box, _lab in preds:
-        gt_boxes = gts.get(image_id, [])
-        best_iou = 0.0
-        best_j = -1
-        for j, gt in enumerate(gt_boxes):
-            if j in used[image_id]:
-                continue
-            iou = float(box_iou_matrix(box[None], gt[None])[0, 0])
-            if iou > best_iou:
-                best_iou = iou
-                best_j = j
-        ok = best_iou >= thr and best_j >= 0
-        if ok:
-            used[image_id].add(best_j)
-        hits.append(ok)
+def _greedy_hits(iou: np.ndarray) -> np.ndarray:
+    """iou is preds x gts for one image and class, preds in score order.
+
+    Returns preds x thresholds match flags. Each prediction takes the unused
+    ground truth with the highest IoU, as in the COCO evaluator.
+    """
+    hits = np.zeros((iou.shape[0], len(IOU_THRESHOLDS)), dtype=bool)
+    if iou.shape[1] == 0:
+        return hits
+    for t, thr in enumerate(IOU_THRESHOLDS):
+        free = np.ones(iou.shape[1], dtype=bool)
+        for i in range(iou.shape[0]):
+            cand = np.where(free, iou[i], -1.0)
+            j = int(cand.argmax())
+            if cand[j] >= thr:
+                free[j] = False
+                hits[i, t] = True
     return hits
 
 
 def detection_metrics(samples: list[dict], num_classes: int) -> dict:
     """samples: image_id, pred boxes/scores/labels, gt boxes/labels. Tensors on CPU."""
-    iou_thrs = [round(0.5 + 0.05 * i, 2) for i in range(10)]
-    per_class_ap = {thr: {} for thr in iou_thrs}
+    per_class_ap = {float(thr): {} for thr in IOU_THRESHOLDS}
     for cls in range(num_classes):
-        preds = []
-        gts = {}
-        npos = 0
+        scores, hits, npos = [], [], 0
         for sample in samples:
-            gid = sample["image_id"]
-            gt_mask = sample["gt_labels"] == cls
-            gt_boxes = list(sample["gt_boxes"][gt_mask])
-            gts[gid] = gt_boxes
-            npos += len(gt_boxes)
-            pred_mask = sample["pred_labels"] == cls
-            for box, score in zip(sample["pred_boxes"][pred_mask], sample["pred_scores"][pred_mask]):
-                preds.append((gid, float(score), box, cls))
-        preds.sort(key=lambda p: -p[1])
+            gt = sample["gt_boxes"][sample["gt_labels"] == cls]
+            npos += len(gt)
+            mask = sample["pred_labels"] == cls
+            if not mask.any():
+                continue
+            s = sample["pred_scores"][mask]
+            order = s.argsort(descending=True, stable=True)
+            iou = box_iou_matrix(sample["pred_boxes"][mask][order], gt).numpy()
+            scores.append(s[order].numpy())
+            hits.append(_greedy_hits(iou))
         if npos == 0:
             continue
-        for thr in iou_thrs:
-            hits = _match(preds, gts, thr)
-            per_class_ap[thr][cls] = _ap_11(hits, npos)
+        if scores:
+            order = np.argsort(-np.concatenate(scores), kind="stable")
+            hits_all = np.concatenate(hits)[order]
+        else:
+            hits_all = np.zeros((0, len(IOU_THRESHOLDS)), dtype=bool)
+        for t, thr in enumerate(IOU_THRESHOLDS):
+            per_class_ap[float(thr)][cls] = average_precision(hits_all[:, t], npos)
 
     def mean_ap(thr: float) -> float:
         vals = [v for v in per_class_ap[thr].values() if v == v]
         return sum(vals) / len(vals) if vals else float("nan")
 
     map50 = mean_ap(0.5)
-    map_all = sum(mean_ap(thr) for thr in iou_thrs) / len(iou_thrs)
+    map_all = sum(mean_ap(thr) for thr in per_class_ap) / len(per_class_ap)
     pr = precision_recall(samples, iou_thr=0.5, score_thr=0.5)
     return {
         "map50": map50,

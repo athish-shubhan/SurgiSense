@@ -5,6 +5,7 @@ from __future__ import annotations
 import torch
 import torch.nn.functional as F
 from torch import nn
+from torchvision.ops import batched_nms
 from torchvision.models import MobileNet_V3_Small_Weights, mobilenet_v3_small
 
 
@@ -84,21 +85,24 @@ def detection_loss(pred: torch.Tensor, batch: list[dict], stride: int = 16) -> d
     b, _, gh, gw = pred.shape
     device = pred.device
     num_classes = pred.shape[1] - 5
-    obj_t = torch.zeros(b, gh, gw, device=device)
-    cls_t = torch.zeros(b, gh, gw, dtype=torch.long, device=device)
-    box_t = torch.zeros(b, gh, gw, 4, device=device)
+    # Targets are built on the CPU and copied once. Indexing an MPS tensor box
+    # by box forces a device sync per box.
+    obj_t = torch.zeros(b, gh, gw)
+    cls_t = torch.zeros(b, gh, gw, dtype=torch.long)
+    box_t = torch.zeros(b, gh, gw, 4)
     for i, sample in enumerate(batch):
-        boxes = sample["boxes"].to(device)
-        labels = sample["labels"].to(device)
-        for box, lab in zip(boxes, labels):
-            cx = (box[0] + box[2]) * 0.5
-            cy = (box[1] + box[3]) * 0.5
-            gx = int(cx.item() // stride)
-            gy = int(cy.item() // stride)
-            if 0 <= gx < gw and 0 <= gy < gh:
-                obj_t[i, gy, gx] = 1.0
-                cls_t[i, gy, gx] = lab
-                box_t[i, gy, gx] = box
+        boxes = sample["boxes"].cpu()
+        if len(boxes) == 0:
+            continue
+        gx = ((boxes[:, 0] + boxes[:, 2]) * 0.5 // stride).long()
+        gy = ((boxes[:, 1] + boxes[:, 3]) * 0.5 // stride).long()
+        inside = (gx >= 0) & (gx < gw) & (gy >= 0) & (gy < gh)
+        # In-order writes, so a later box in the same cell wins, as before.
+        for k in inside.nonzero().flatten().tolist():
+            obj_t[i, gy[k], gx[k]] = 1.0
+            cls_t[i, gy[k], gx[k]] = sample["labels"][k]
+            box_t[i, gy[k], gx[k]] = boxes[k]
+    obj_t, cls_t, box_t = obj_t.to(device), cls_t.to(device), box_t.to(device)
 
     obj_logit = pred[:, 0]
     cls_logit = pred[:, 1 : 1 + num_classes]
@@ -123,32 +127,6 @@ def detection_loss(pred: torch.Tensor, batch: list[dict], stride: int = 16) -> d
     return {"loss": total, "obj": obj_loss.detach(), "cls": cls_loss.detach(), "box": box_loss.detach()}
 
 
-def _nms(boxes: torch.Tensor, scores: torch.Tensor, iou_thr: float) -> torch.Tensor:
-    if len(boxes) == 0:
-        return torch.zeros(0, dtype=torch.long)
-    order = scores.argsort(descending=True)
-    keep = []
-    while order.numel():
-        i = int(order[0])
-        keep.append(i)
-        if order.numel() == 1:
-            break
-        rest = order[1:]
-        ious = _iou_one(boxes[i], boxes[rest])
-        order = rest[ious <= iou_thr]
-    return torch.tensor(keep, dtype=torch.long, device=boxes.device)
-
-
-def _iou_one(box: torch.Tensor, boxes: torch.Tensor) -> torch.Tensor:
-    tl = torch.max(box[:2], boxes[:, :2])
-    br = torch.min(box[2:], boxes[:, 2:])
-    wh = (br - tl).clamp(min=0)
-    inter = wh[:, 0] * wh[:, 1]
-    area_b = (boxes[:, 2] - boxes[:, 0]).clamp(min=0) * (boxes[:, 3] - boxes[:, 1]).clamp(min=0)
-    area = (box[2] - box[0]).clamp(min=0) * (box[3] - box[1]).clamp(min=0)
-    return inter / (area + area_b - inter + 1e-7)
-
-
 @torch.no_grad()
 def predict(
     pred: torch.Tensor,
@@ -167,6 +145,8 @@ def predict(
     boxes[..., 2].clamp_(0, width)
     boxes[..., 1].clamp_(0, height)
     boxes[..., 3].clamp_(0, height)
+    # NMS is a few dozen boxes per frame, so it runs on the CPU.
+    obj, cls_prob, boxes = obj.cpu(), cls_prob.cpu(), boxes.cpu()
     out = []
     for i in range(pred.shape[0]):
         prob, lab = cls_prob[i].max(dim=0)
@@ -175,27 +155,9 @@ def predict(
         if not mask.any():
             out.append(_empty())
             continue
-        b = boxes[i][mask]
-        s = score[mask]
-        lb = lab[mask]
-        kept_b, kept_s, kept_l = [], [], []
-        for c in lb.unique():
-            sel = lb == c
-            idx = _nms(b[sel], s[sel], nms_iou)
-            kept_b.append(b[sel][idx])
-            kept_s.append(s[sel][idx])
-            kept_l.append(lb[sel][idx])
-        bb = torch.cat(kept_b)
-        ss = torch.cat(kept_s)
-        ll = torch.cat(kept_l)
-        order = ss.argsort(descending=True)[:max_det]
-        out.append(
-            {
-                "boxes": bb[order].cpu(),
-                "scores": ss[order].cpu(),
-                "labels": ll[order].cpu(),
-            }
-        )
+        b, s, lb = boxes[i][mask], score[mask], lab[mask]
+        keep = batched_nms(b, s, lb, nms_iou)[:max_det]
+        out.append({"boxes": b[keep], "scores": s[keep], "labels": lb[keep]})
     return out
 
 
