@@ -12,7 +12,7 @@ Sequential inference on the test clip, batch 1, MPS, 863 frames after a warmup o
 
 [SurgVU](https://storage.googleapis.com/isi-surgvu/cat1_test_set_public.zip) publishes seven tool clips (about 164 MB) and a separate label zip. Both download with no registration. The full training archive is about 344 GB and is not used. The case-level `tasks.csv` / `tools.csv` files in the label zip do not match these seven clip ids, so phase labels are not trained. Presence labels come from the boxes.
 
-The clips are someone else's dataset, released under the SurgVU terms, which apply to any use of the data and to models trained on it (see the dataset page for the licence and the citation to use). This repo does not redistribute the video, the extracted frames, or overlays drawn on those frames. `download` fetches them into `data/raw/`, which is gitignored.
+The clips are someone else's dataset, released under the SurgVU terms, which apply to any use of the data and to models trained on it (check the dataset's download page for the licence before reusing it). Cite the dataset as: A. Zia, M. Berniker, R. Nespolo, X. Zhang, C. Perreault et al., "Surgical Visual Understanding (SurgVU) Dataset", arXiv:2501.09209, 2025 (Intuitive Surgical). This repo does not redistribute the video, the extracted frames, or overlays drawn on those frames. `download` fetches them into `data/raw/`, which is gitignored.
 
 Split by video, so no frame is in two splits:
 
