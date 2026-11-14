@@ -8,6 +8,10 @@ Measured on the public SurgVU tool clips, Apple M1, PyTorch 2.14. The augmented 
 
 Sequential inference on the test clip, batch 1, MPS, 863 frames after a warmup of 8: 67.1 ms/frame (14.9 FPS). The ROS replay of that log stepped the MuJoCo arm for all 871 frames: 417 track, 454 hold. Hold frames do not move the joints.
 
+![Replay of the test-clip log](evaluation/replay.gif)
+
+*Replay of 230 frames of the held-out clip, from `evaluation/inference/predictions.jsonl` (`python -m surgisense replay`). Left: the detector's boxes. Top right: the confidence the arm acts on against the 0.35 hold threshold, shaded where the arm holds. Bottom right: the temporal model's tool presence. The endoscope frames are not shown because the SurgVU terms do not allow redistributing them, so the boxes are drawn on an empty frame.*
+
 ## Data
 
 [SurgVU](https://storage.googleapis.com/isi-surgvu/cat1_test_set_public.zip) publishes seven tool clips (about 164 MB) and a separate label zip. Both download with no registration. The full training archive is about 344 GB and is not used. The case-level `tasks.csv` / `tools.csv` files in the label zip do not match these seven clip ids, so phase labels are not trained. Presence labels come from the boxes.
