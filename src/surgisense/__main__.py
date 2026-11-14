@@ -16,6 +16,7 @@ def main() -> None:
         "infer": "surgisense.infer",
         "simulate": "surgisense.simulate",
         "dashboard": "surgisense.dashboard",
+        "replay": "surgisense.replay",
     }
     if len(sys.argv) < 2 or sys.argv[1] not in commands:
         names = ", ".join(commands)
